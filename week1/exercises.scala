@@ -46,7 +46,8 @@ object Exercises extends App {
     else 1.0 / (power (x,-n)) //Tail recursive
   }
 
-  //If n is very large, the stack depth will rapidly grow due to the exponential number of recursive calls. With the current logic, it is difficult to make the function tail recursive due to the fact that we have two new recursive calls for each call.
+  //If n is very large, the stack depth will rapidly grow due to the exponential number of recursive calls. 
+  //With the current logic, it is difficult to make the function tail recursive due to the fact that we have two new recursive calls for each call.
 
 
   // A few tests, uncomment when your implementation is ready.
@@ -139,7 +140,6 @@ object Exercises extends App {
   assert (!isSorted (Array(1,2,3,4,5,1), (a: Int, b: Int)=> a <= b))
 
   // add two tests with another type, for example an Array[String]
-
 
   assert( isSorted (Array("a","b","c","d","e","f","g"), (a: String, b: String)=> a <= b))
   assert(!isSorted (Array("a","c","b","d","e","f","g"), (a: String, b: String)=> a <= b))
