@@ -199,7 +199,7 @@ object List {
       case 1 => List(1)
       case n => 
         val l = pascal(n-1)
-        var z = zipWith[Int,Int,Int] (_ + _) (l, tail (l))
+        val z = zipWith[Int,Int,Int] (_ + _) (l, tail (l))
         append (Cons(1,z), List(1))
     } 
 
