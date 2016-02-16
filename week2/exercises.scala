@@ -133,7 +133,10 @@ object List {
       foldLeft (reverse (as), z) ((a,b) => f (b,a))
 
     def foldLeft1[A,B] (as: List[A], z: B) (f: (B,A) => B) : B = 
-      (foldRight1[A,B=>B] (as, (b => b)) ((a,b) => (x => f((b (x)),a)))) (z)
+      (foldRight[A,B=>B] (as, (b => b)) ((a,b) => (x => b(f(x,a))))) (z) 
+      
+    //To test that the foldLeft1 is correct
+    def reverse2[A] (as :List[A]) :List[A] = foldLeft1 (as,(Nil:List[A])) ((x,y) => Cons(y,x))
 
     // Exercise 13
 
