@@ -118,7 +118,7 @@ object List {
 
     def reverse[A] (as :List[A]) :List[A] = foldLeft (as,(Nil:List[A])) ((x,y) => Cons(y,x))
 
-    def reverse2 [A] (as :List[A]) :List[A] = {
+    def reverse1 [A] (as :List[A]) :List[A] = {
       def res [A] (as: List[A]) (z: List[A]) : List[A] = as match {
         case Nil => z 
         case Cons(x,xs) => res (xs) (Cons(x,z))
