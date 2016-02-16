@@ -118,14 +118,22 @@ object List {
 
     def reverse[A] (as :List[A]) :List[A] = foldLeft (as,(Nil:List[A])) ((x,y) => Cons(y,x))
 
+    def reverse2 [A] (as :List[A]) :List[A] = {
+      def res [A] (as: List[A]) (z: List[A]) : List[A] = as match {
+        case Nil => z 
+        case Cons(x,xs) => res (xs) (Cons(x,z))
+      }
+      res (as) (List())
+    }
+
+
     // Exercise 12
 
     def foldRight1[A,B] (as: List[A], z: B) (f: (A, B) => B) : B = 
       foldLeft (reverse (as), z) ((a,b) => f (b,a))
 
-
-    //def foldLeft1[A,B] (as: List[A], z: B) (f: (B,A) => B) : B =
-    // I don't understand what I'm being asked to do.
+    def foldLeft1[A,B] (as: List[A], z: B) (f: (B,A) => B) : B = 
+      (foldRight1[A,B=>B] (as, (b => b)) ((a,b) => (x => f((b (x)),a)))) (z)
 
     // Exercise 13
 
@@ -141,24 +149,26 @@ object List {
 
     // Exercise 14
 
-    // I don't know what map version that is being refered too.
+    //The map function shown in the slides from week1 is not tail-recursive due to the fact that it has to "Cons" the list together after all the recursive calls.
 
     def map[A,B] (a :List[A]) (f :A => B) :List[B] = 
       foldRight1 (a,(Nil:List[B])) ((x,y) => Cons(f(x),y))
 
+    def map2[A,B] (a :List[A]) (f :A => B) :List[B] = 
+      foldLeft (a,(Nil:List[B])) ((x,y) => Cons(f(y),x))
+
 
     // Exercise 15 (no coding)
-    
-    //Because the resulting mapped list would be backwards.
+
+    //Because the resulting mapped list would then be backwards/reversed.
 
     // Exercise 16
 
     def filter[A] (as: List[A]) (f: A => Boolean) : List[A] = as match {
       case Cons(x,xs) =>  if (f (x)) Cons(x,filter (xs) (f)) 
-                          else filter (xs) (f)
+      else filter (xs) (f)
       case _ => Nil
     }
-
 
     // Exercise 17
 
