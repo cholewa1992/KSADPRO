@@ -94,7 +94,7 @@ object Tree {
   def map1[A,B] (t: Tree[A]) (f: A => B) :Tree[B] = fold[A,Tree[B]] (t) (Branch(_,_)) (x => Leaf(f(x))) 
 
 }
-
+/*
 sealed trait Option[+A] 
 {
   def map[B] (f: (A) => B) : Option[B]
@@ -118,7 +118,7 @@ case object None extends Option[Nothing]
   override def flatMap[B] (f: (Nothing) => Option[B]) : Option[B] = None
   override def orElse[B >: Nothing] (ob : => Option[B]) : Option[B] = ob
   override def filter (f: (Nothing) => Boolean) : Option[Nothing] = None 
-}
+}*/
 
 
 //sealed trait Option[+A] 
