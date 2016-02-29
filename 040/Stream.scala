@@ -87,6 +87,34 @@ sealed trait Stream[+A] {
 
   def flatMap[B](f: A => Stream[B]) :Stream[B] =
     this.foldRight[Stream[B]] (Empty) ((a,b) => f(a).append(b))        
+
+  def find (p: A => Boolean) :Option[A] = this.filter(p).headOption
+  //This is an effective implementation for streams because it will sequentially get the elements, and return the first one that matches. It is suboptimal for lists because it is O(n), where an efficient list search should be O(nlog(n))
+  
+  def map3[B](f: A => B) :Stream[B] = 
+    //unfold (this) (s => s.headOption.flatMap(x => Some(f(x),s.tail))) 
+    unfold (this) (s => for(x <- s.headOption) yield (f(x),s.tail))
+
+  def take3(n :Int) :Stream[A] = 
+    //unfold ((n,this)) (s => s._2.headOption.flatMap(x => if(s._1 > 0) Some(x,(s._1-1,s._2.tail)) else None))
+    unfold (n,this) (s => for(x <- s._2.headOption; if(s._1 > 0)) yield (x,(s._1-1,s._2.tail)))
+
+  def takeWhile3(p: A => Boolean): Stream[A] = 
+    //unfold (this) (s => s.headOption.flatMap(x => if(p(x)) Some(x,s.tail) else None))
+    unfold (this) (s => for(x <- s.headOption; if(p(x))) yield (x,s.tail))
+
+  def zipWith3[B,C] (f: A => B => C) (s: Stream[B]): Stream[C] = 
+    unfold (this,s) (s => for(x <- s._1.headOption; y <- s._2.headOption) yield (f (x) (y), (s._1.tail, s._2.tail)))
+
+  def zipAll3[B](s: Stream[B]): Stream[(Option[A],Option[B])] = 
+    unfold (this,s) (s => Some((s._1.headOption, s._2.headOption), (s._1.tail,s._2.tail)))
+
+  def startsWith[B >: A](that: Stream[B]): Boolean = 
+    ((that.zipAll3 (this)).takeWhile3 (s => s._1 != None && s._2 != None)).forAll(s => s._1 == s._2)
+
+  def tails: Stream[Stream[A]] =
+    unfold (this) (s => if(s != Empty) Some(s,s.tail) else None)
+
 }
 case object Empty extends Stream[Nothing]
 case class Cons[+A](h: ()=>A, t: ()=>Stream[A]) extends Stream[A]
@@ -109,9 +137,21 @@ object Stream {
   // Note 2: pattern matching with :: does not seem to work with Seq, so we
   //         use a generic function API of Seq
 
-  def to(n :Int) :Stream[Int] = if (n >= 0) cons(n, to(n-1)) else empty 
-  def from(n :Int) :Stream[Int] = if (n >= 0) cons(n,from(n+1)) else empty 
-  def naturals :Stream[Int] = from(0)
+  def to(n:Int): Stream[Int] = if (n >= 0) cons(n, to(n-1)) else empty 
+  def from(n:Int): Stream[Int] = if (n >= 0) cons(n,from(n+1)) else empty 
+  def naturals: Stream[Int] = from(0)
 
+
+  def fibs :Stream[Int] = {
+    def fibsrec (x:Int) (y:Int) :Stream[Int] = cons(x+y, fibsrec (x+y) (x))
+    cons(0,cons(1,(fibsrec (1) (0))))
+  }
+  
+  def unfold[A,S](z: S)(f: S => Option[(A,S)]): Stream[A] = 
+    (for((a,s) <- f(z)) yield Cons(() => a, () => unfold (s) (f))).getOrElse(Empty)
+
+  def fibs1: Stream[Int] = unfold ((-1,1)) (s => Some(s._1+s._2,(s._2,s._1+s._2)))
+  def from1(n:Int): Stream[Int] = unfold (n) (s => if(s >= 0) Some(s,s+1) else None)
 }
+
 

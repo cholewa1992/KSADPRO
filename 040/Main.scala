@@ -39,3 +39,23 @@ naturals.take(10).append(naturals).take(20).toList
 naturals.flatMap (to _).take (100).toList
 naturals.flatMap (x =>from (x)).take (100).toList
 
+fibs.take(10).toList
+
+unfold (0) (s => if(s >= 0) Some(s,s+1) else None).take(10).toList == naturals.take(10).toList
+
+from(1).take(1000000000).drop(41).take(10).toList == from1(1).take(1000000000).drop(41).take(10).toList
+fibs1.take(100).toList == fibs.take(100).toList
+
+naturals.map(_*2).drop(30).take(10).toList == naturals.map3(_*2).drop(30).take(10).toList 
+naturals.take(10).toList == naturals.take3(10).toList
+naturals.takeWhile(_<1000000000).drop(100).take(50).toList == naturals.takeWhile3(_<1000000000).drop(100).take(50).toList
+
+naturals.zipAll3 (fibs).take(10).toList
+
+naturals.startsWith (naturals.take(100))
+!naturals.startsWith (fibs.take(100))
+//naturals.startsWith (naturals) fails because the never differ, and its therefore keeps running
+//naturals.startsWith (fibs) Does not terminate because the streams quickly differs (and the result is therefore false)
+
+naturals.tails.take(5).toList
+naturals.take(5).tails.map(x => x.toList).toList
