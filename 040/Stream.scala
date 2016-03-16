@@ -114,7 +114,6 @@ sealed trait Stream[+A] {
 
   def tails: Stream[Stream[A]] =
     unfold (this) (s => if(s != Empty) Some(s,s.tail) else None)
-
 }
 case object Empty extends Stream[Nothing]
 case class Cons[+A](h: ()=>A, t: ()=>Stream[A]) extends Stream[A]
@@ -152,6 +151,13 @@ object Stream {
 
   def fibs1: Stream[Int] = unfold ((-1,1)) (s => Some(s._1+s._2,(s._2,s._1+s._2)))
   def from1(n:Int): Stream[Int] = unfold (n) (s => if(s >= 0) Some(s,s+1) else None)
+
+  def even(n:Int): Stream[Int] = if(n % 2 == 0) cons(n,even(n+2)) else cons(n+1,even(n+2))
+
+  def flatten[A] (s: Stream[Stream[A]]) : Stream[A] = 
+    s.foldRight[Stream[A]] (Empty) ((e,acc) => e.append (acc))
+
+  def flatten2[A] (s: Stream[Stream[A]]): Stream[A] = s.flatMap( s => s)
 }
 
 

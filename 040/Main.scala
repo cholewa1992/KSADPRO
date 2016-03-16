@@ -59,3 +59,4 @@ naturals.startsWith (naturals.take(100))
 
 naturals.tails.take(5).toList
 naturals.take(5).tails.map(x => x.toList).toList
+flatten (naturals.tails).take(5)
