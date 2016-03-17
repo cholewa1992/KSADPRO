@@ -219,6 +219,14 @@ object Candy {
 
   // Exercise 13 (CB 6.11)
 
-  // def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ...
+  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = State(m => {
+      val Machine(a,b,c) = m
+      inputs match {
+        case Coin::xs if  a && b > 0 => simulateMachine(xs).run(Machine(!a,b,c+1))
+        case Turn::xs if !a && b > 0 => simulateMachine(xs).run(Machine(!a,b-1,c))
+        case x::xs => simulateMachine(xs).run(Machine(a,b,c))
+        case Nil =>  ((b,c),Machine(a,b,c))
+      }
+  })
 }
 
