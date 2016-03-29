@@ -11,7 +11,7 @@ object MyModule {
   def main(args: Array[String]): Unit = {
     //assert (magic - 84 == magic.-(84))
     //println(formatAbs(magic-100))
-    //println(fact(5))  
+    //println(fact(5))
     val mixed = List(-1,2,-3,4,-5)
     println (map (mixed) (fact _ compose abs _))
     println (map (mixed) (x => x+1))
