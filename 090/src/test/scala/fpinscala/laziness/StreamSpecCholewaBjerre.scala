@@ -112,6 +112,7 @@ class StreamSpecCholewaBjerre extends FlatSpec with Checkers {
     ("n > 0" |: Prop.forAll { (n: Int, s: Stream[Int]) => s.drop(n); true } )
   }
 
+  //TODO
   it should "not force any of the dropped elements heads, even if we evaluate tail (09)" in check {
     implicit def arbInt = Arbitrary[Int] (Gen.choose(1,10000))
     implicit def arbIntStream = Arbitrary[Stream[Int]] (Gen.const(infinitOf(throwException[Int])))
