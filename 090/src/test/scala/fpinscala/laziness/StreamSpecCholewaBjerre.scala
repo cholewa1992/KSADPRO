@@ -31,7 +31,7 @@ class StreamSpecCholewaBjerre extends FlatSpec with Checkers {
     assert(empty.headOption == None)
   }
 
-  //Folds a list into a stream 
+  //Folds a list into a stream
   def list2stream[A] (la: List[A]): Stream[A] = la.foldRight (empty[A]) (cons[A](_,_))
 
   //Generator of non-empty finite streams
@@ -48,7 +48,7 @@ class StreamSpecCholewaBjerre extends FlatSpec with Checkers {
   def randomStream[A] (implicit arbA: Arbitrary[A]): Stream[A] =
     arbA.arbitrary.sample match {
       case Some(a) => cons(a,randomStream[A])
-      case None => throw new RuntimeException("Not suppose to go here") 
+      case None => throw new RuntimeException("Not suppose to go here")
     }
 
   //Defines a generator of infinit random streams
@@ -59,7 +59,7 @@ class StreamSpecCholewaBjerre extends FlatSpec with Checkers {
     if(n > 0) cons(e,streamOfNAPlusArbitrary (n-1) (e))
     else arbA.arbitrary.sample match {
       case Some(a) => cons(a,empty)
-      case None => Empty
+      case None => throw new RuntimeException("Not suppose to go here")
     }
   }
 
@@ -67,7 +67,7 @@ class StreamSpecCholewaBjerre extends FlatSpec with Checkers {
   def streamOfNArbitraryPlusA[A] (n: Int) (e: => A) (implicit arbA: Arbitrary[A]): Stream[A] = arbA.arbitrary.sample match {
     case Some(a) if n > 0 => cons(a,streamOfNArbitraryPlusA (n-1) (e))
     case Some(_) => cons(e,empty)
-    case None => Empty
+    case None => throw new RuntimeException("Not suppose to go here")
   }
 
   //These will apear of type A and Stream[A], but will throw exceptions when evaluated
@@ -96,25 +96,25 @@ class StreamSpecCholewaBjerre extends FlatSpec with Checkers {
 
   it should "not force (n+1)st head ever (even if we force all elements of take(n)) (05)" in check {
     implicit def arbInt = Arbitrary[Int] (Gen.choose(1,10000))
-    ("n = 0" |: Prop.forAll { (n: Int) => streamOfNArbitraryPlusA(n)(throwException[Int]).take(n).toList; true } ) &&
+    ("n = 0" |: Prop.forAll { (n: Int) => streamOfNArbitraryPlusA(0)(throwException[Int]).take(0).toList; true } ) &&
     ("n > 0" |: Prop.forAll { (n: Int) => streamOfNArbitraryPlusA(n)(throwException[Int]).take(n).toList; true } )
   }
 
   it should "be idempotent (06)" in check {
     implicit def arbIntStream = Arbitrary[Stream[Int]] (genInfinitRandomStream[Int])
-    implicit def arbInt = Arbitrary[Int] (Gen.choose(1,10000))
-    ("infinit random stream" |: Prop.forAll { (s: Stream[Int], n: Int) => 
+    implicit def arbInt = Arbitrary[Int] (Gen.choose(0,10000))
+    ("infinit random stream" |: Prop.forAll { (s: Stream[Int], n: Int) =>
     (s.take(n).take(n).toList == s.take(n).toList) } )
   }
 
   behavior of "drop"
   it should "be additive (07)" in check {
     implicit def arbIntStream = Arbitrary[Stream[Int]] (genNonEmptyStream[Int])
-    implicit def arbInt = Arbitrary[Int] (Gen.choose(0,10000))
+    implicit def arbInt = Arbitrary[Int] (Gen.choose(1,10000))
     ("n = 0, m = 0" |: Prop.forAll { (s: Stream[Int]) => s.drop(0).drop(0).toList == s.drop(0).toList } ) &&
-    ("n = 0, m >= 0" |: Prop.forAll { (s: Stream[Int], m:Int) => s.drop(0).drop(m).toList == s.drop(m).toList } ) &&
-    ("n >= 0, m = 0" |: Prop.forAll { (s: Stream[Int], n: Int) => s.drop(n).drop(0).toList == s.drop(n).toList } ) &&
-    ("n >= 0, m >= 0" |: Prop.forAll { (s: Stream[Int], n: Int, m:Int) => s.drop(n).drop(m).toList == s.drop(n+m).toList } )
+    ("n = 0, m > 0" |: Prop.forAll { (s: Stream[Int], m:Int) => s.drop(0).drop(m).toList == s.drop(m).toList } ) &&
+    ("n > 0, m = 0" |: Prop.forAll { (s: Stream[Int], n: Int) => s.drop(n).drop(0).toList == s.drop(n).toList } ) &&
+    ("n > 0, m > 0" |: Prop.forAll { (s: Stream[Int], n: Int, m:Int) => s.drop(n).drop(m).toList == s.drop(n+m).toList } )
   }
 
   it should "not force any of the dropped elements heads (08)" in check {
@@ -145,14 +145,20 @@ class StreamSpecCholewaBjerre extends FlatSpec with Checkers {
   behavior of "append"
   it should "be distrubutive (12)" in check {
     implicit def arbIntStream = Arbitrary[Stream[Int]] (genNonEmptyStream[Int])
-    ("finite random stream" |: 
+    ("finite random stream" |:
       Prop.forAll { (s1: Stream[Int], s2: Stream[Int]) => s1.append(s2).toList == s1.toList ::: s2.toList } )
   }
 
+  //It should not force any heads either. Think this is a mistake on stream00
   it should "not force any tails of the Stream it manipulates (13)" in check {
     implicit def arbIntStream = Arbitrary[Stream[Int]] (Gen.const[Stream[Int]] (cons(1, exceptionThrowingStream[Int])))
     ("finite random stream" |: Prop.forAll { (s1: Stream[Int], s2: Stream[Int]) => s1.append(s2); true } )
   }
+
+  /*it should "not force any tails nor heads of the Stream it manipulates (13)" in check {
+    implicit def arbIntStream = Arbitrary[Stream[Int]] (Gen.const[Stream[Int]] (cons(throwException[Int], exceptionThrowingStream[Int])))
+    ("finite random stream" |: Prop.forAll { (s1: Stream[Int], s2: Stream[Int]) => s1.append(s2); true } )
+  }*/
 
   it should "terminate on infinite streams (14)" in check {
     implicit def arbIntStream = Arbitrary[Stream[Int]] (genInfinitRandomStream[Int])
