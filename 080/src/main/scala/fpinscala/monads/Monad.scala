@@ -55,19 +55,21 @@ trait Monad[F[_]] {
 
   // Exercise 11.4
 
-  def replicateM[A] (n: Int, ma: F[A]): F[List[A]] =
-    sequence(List.fillN (n) (ma
+  def replicateM[A] (n: Int, ma: F[A]): F[List[A]] = sequence(List.fill(n)(ma))
 
   def join[A] (mma: F[F[A]]): F[A] = flatMap (mma) (ma => ma)
 
   // Exercise 11.7
 
-  // def compose[A,B,C] (f: A => F[B], g: B => F[C]): A => F[C] =
+  def compose[A,B,C] (f: A => F[B], g: B => F[C]): A => F[C] =
+    a => flatMap (f(a)) (g)
 
   // Exercise 11.8
 
-  // def flatMap_compose[A,B] (ma: F[A]) (f: A => F[B]) :F[B] =
-
+  def flatMap_compose[A,B] (ma: F[A]) (f: A => F[B]): F[B] =
+    compose[Unit,A,B]((_) => ma,f)(()) //This took its time...
+    //It would have nice to know that it was the unit type, and not the unit function. 
+    //That would have saved me an hour..
 }
 
 object Monad {
@@ -88,5 +90,4 @@ object Monad {
     def unit[A] (a: => A): List[A] = a :: List.empty
     def flatMap[A,B] (ma: List[A]) (f: A => List[B]): List[B] = ma.flatMap (f)
   }
-
 }
