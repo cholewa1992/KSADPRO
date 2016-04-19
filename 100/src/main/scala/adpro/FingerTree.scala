@@ -62,8 +62,8 @@ object data {
 
     def headL: A = FingerTree.headL (this)
     def tailL: FingerTree[A] = FingerTree.tailL (this)
-    // def headR :A = FingerTree.headR (this)
-    // def tailR :FingerTree[A] = FingerTree.tailR (this)
+    def headR :A = FingerTree.headR (this)
+    def tailR :FingerTree[A] = FingerTree.tailR (this)
 
     // page 7 (but this version uses polymorphis for efficiency, so we can
     // implement it differently; If you want to follow the paper closely move them to
@@ -121,7 +121,9 @@ object data {
     def unapply[A] (t: FingerTree[A]) :Option[(FingerTree[A],A)] = t match {
       case Empty() => None
       case Single(x) => Some(Empty(),x)
-      case Deep(pr,m,sf) => Some(FingerTree.deepR(pr,m,sf.tail),sf.head)
+      case Deep(pr,m,sf) => {
+        Some(FingerTree.deepR(pr,m,sf.splitAt(sf.length-1)._1),sf.last)
+      }
     }
   }
 
@@ -242,7 +244,7 @@ object data {
       case Nil => m match {
         case NilTree() => Digit.toTree(pr)
         case ConsR(t,h) => Deep(pr, t, Node.toList(h))
-      } 
+      }
       case _ => Deep(pr,m,sf)
     }
 
