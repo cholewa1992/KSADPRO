@@ -122,7 +122,7 @@ object data {
       case Empty() => None
       case Single(x) => Some(Empty(),x)
       case Deep(pr,m,sf) => {
-        Some(FingerTree.deepR(pr,m,sf.splitAt(sf.length-1)._1),sf.last)
+        Some(FingerTree.deepR(pr,m,sf.init),sf.last)
       }
     }
   }
