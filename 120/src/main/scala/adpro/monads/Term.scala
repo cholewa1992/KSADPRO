@@ -257,21 +257,20 @@ object OutputEvaluatorWithMonads {
 
   // TODO: implement eval
   def eval (term :Term):M[Int] = term match {
-    case Con (a) => for (r <- M.unit(a); o <- out(line(term)(r))) yield r
-    //M.unit(a).flatMap(r => out(line(term)(r)).map(o => r)) // Same as above
+    case Con (a) => for (u <- out(line(term)(a))) yield a
+    //out(line(term)(a)).map(u => a) // Same as above
 
     case Div (t,u) => for {
       a <- eval (t)
       b <- eval (u)
-      r <- M.unit(a/b)
-      o <- out(line(term)(r))
-    } yield r
+      u <- out(line(term)(a/b))
+    } yield a/b
 
-     /*eval(t).flatMap(a => // Same as above
-         eval(u).flatMap(b => 
-             M.unit((a/b)).flatMap(r => 
-                 out(line(term)(r)).map(o => 
-                     r))))*/
+   /* eval(t).flatMap( // Same as above
+     a => eval(u).flatMap(
+       b => out(line(term)(a/b)).map(
+         u => a/b
+       ))) */
   }
 
   // Discuss in the group how the monadic evaluator with output differs from
