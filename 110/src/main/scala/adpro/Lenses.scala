@@ -56,13 +56,14 @@ object Lenses {
 
   // page 6 in Foster et al.:
 
-  // val l2 : Lens[String, (String,Int)] = TODO
+  val l2 = Lens[String, (String,Int)] ((_,0)) (n => a => n._1)
 
   // page 7 in Foster et al.
 
-  // val l3 : Lens[(String,Int), String] = TODO
-
-
+  val l3 = Lens[(String,Int), String] (_._1) (s1 => _ match {
+    case (s2,n) if (s1 == s2) => (s1,n)
+    case (s2,n) => (s1,n+1)
+  })
 
   // Exercise 1: Write PutGet law as a property test for arbitrary lenses from
   // type C to typ A; do the same for GetPut and PutPut.  Test the above three
@@ -74,8 +75,6 @@ object Lenses {
   // With some plumbing we can even use the implementations of the tests
   // provided by the framework (See the bottom of LensesSpec.scala... but in
   // this exercise please implement your tests from scratch).
-
-
 
   // Exercise 2: Implement the lense codiag from Either[A.A] to A (this is
   // presented by [Morris, 2012]. This may be thought of as taking either A or A
@@ -89,8 +88,25 @@ object Lenses {
   // use the infix constructor in this exercise, instead of Either.  All the
   // imports in the project are already set up.
 
-  // def codiag[A]: Lens[A \/ A, A] = ... TODO (ca 10-15 lines)
-  //
+
+  def choice[R,S,F] (l1: => Lens[R,F]) (l2: => Lens[S,F]): Lens[R\/S,F] = {
+    def make (f1:R\/S => F, f2: F => R\/S => R\/S) = Lens[R\/S,F] (f1) (f2)
+    make(
+      (_ match {
+        case -\/(v) => l1.get(v)
+        case \/-(v) => l2.get(v)
+      }),
+    (n => _ match {
+      case -\/(r) => -\/(l1.set(n)(r))
+      case \/-(s) => \/-(l2.set(n)(s))
+    })
+  )
+  }
+
+  def id[A] = Lens[A,A] (a => a) (n => a => a)
+  def codiag[A]: Lens[A\/A,A] = choice(id[A])(id[A])
+  def codiag2[A]: Lens[A\/A,A] = choice(Lens.id[A])(Lens.id[A])
+
   // Some codiag tests are found in LensesSpec.  Test your solution.
 
   // Exercise 3: Section 5.3 of [Morris  2012] describes a choice combinator for
@@ -106,13 +122,12 @@ object Lenses {
   //
   // Translate morris' implementation of codiag to Monocle and test it.
 
-  // def codiag1[A]: Lens[A \/ A, A] = TODO ... (ca. 1 line)
-  //
+  def codiag1[A]: Lens[A \/ A, A] = lensChoice.choice (Lens.id,Lens.id)
+
   // Test this implementation uncommenting tests in LensesSpec.scala
 
 
   // Exercise 4: (Important: this exercise shows the main application of lenses)
-  //
   // Consider the following types:
 
   type ZipCode = String
@@ -130,8 +145,8 @@ object Lenses {
     "Christian" -> Address ("D-4242", "Germany"),
     "Andrzej"   -> Address ("00-950", "Poland"),
     "Thorsten"  -> Address ("6767",   "Sweden")
-    ), Address("2300", "Amager")
-  )
+  ), Address("2300", "Amager")
+)
 
   // Write an expression that modifies "itu" in such a way that Alex is in
   // Denmark but at post-code 9100. First without using lenses.
@@ -142,157 +157,175 @@ object Lenses {
   // the copy.  For instance itu.copy (students = itu.students.tail) creates a
   // copy of ITU without the first student.
 
-  // val itu1 = ... TODO (ca. 4 lines)
+  val itu1 = itu.copy(
+    students = itu.students + ("Alex" ->
+      itu.students("Alex").copy(
+        zipcode = "9100"
+      )
+    )
+  )
 
-  // There is a test in LensesSpec to check whether  you did what expected.
-  //
-  // As you see doing this without lenses is very very annoying.  Updating
-  // nested properties in complex objects is much easier in imperative
-  // programming.
-
-
-
-  // Exercise 5.  Lenses to the rescue.  Try to extend our hypothetical
-  // university library with lenses, so that using the types is almost as
-  // natural as in imperative languages.
-  //
-  // a) design a lense that accesses zipcode from Address objects:
-
-  // val _zipcode: Lens[Address, ZipCode] = ... TODO (1-2 lines)
-
-  // b) design a lense that accesses the students collection from university:
-
-  // val _students: Lens[University, Students] = ... TODO (1-2 lines)
-
-  // c) Use the following index lense (name)  from Monocle:
-  //
-  // index(name) :Optional[Map[String,Address],Address]
-  //
-  // This lens focuses our view on the entry in a map with a given index.
-  // Optional in the Monocle terminology is a partial lense in the terminology
-  // of Foster et al.
-  //
-  // Use lenses compositin to update itu the same way as above but in a clearer
-  // way (use the infix binary operator ^|-? to compose a lense with an
-  // optional, and use ^|-> to compose the optional with a lense).
-
-  // val itu2 :University = ... TODO (1-2) lines
-
-  // There is a test in LensesSpec to test whether what you have built behaves
-  // as expected.
-  //
-  // Now once you provide lenses for your types, navigating and modifying deep
-  // structures becomes more readable and easier to write.  In fact, lense
-  // libraries provide various mechanisms to generate them for the properties of
-  // your case classess, so this access can come at almost no (coding) cost.
-
-
-  // Exercise 6. We shall now turn upper case names of all countries in all the
-  // addresses of all students in the itu object.
-  //
-  // We shall use the 'modify' function of lenses. Morris describes modify
-  // problem in Section 2, and shows the lens solution in Listing 9.  Monocle
-  // has a modify method in Lens[A.B]:
-  //
-  //    modify : (B => B) => A => A
-  //
-  // It works almost like get and set at the same time (so you use modify if you
-  // would otherwise like to get a value, and then make a modification to this
-  // value).  Modify takes a function that makes the change (computes the new
-  // data) and then the source(concrete) object.  It returns the new object. It
-  // is potentially more efficient than using get and set separately.
-  //
-  // In this exercise we will use modify to perform a cross cutting modification
-  // on a complex structure.
-  //
-  // We will need a lense that gives us all countries from the map of students.
-  // This kind of lense is called a Traversable in Monocle.
-  //
-  // We use infix ^|->> to compose an optical (Lens, Traversable, Optional, etc)
-  // with a traversable (as we use ^|-> to compose any of these with a Lens).
-  //
-  // The traversable "each" (which has a default instance for maps) will give us
-  // a collection of all objects (values in a map).  So to solve the task we
-  // need to compose:
-  //
-  // - a lense that extracts the students collection from a University
-  // (_students)
-  //
-  // - a traversable that extracts all objects from a collection (each)
-  //
-  // - a lense that extract the country from an address object (_country, you
-  // will need to write that one, as we did not create it yet).
-
-  //  val _country :Lens[Address,String] = TODO (1 line)
-  //
-  //  val itu3 :University = ... TODO (1 line)
-
-  // LensesSpec.scala has a test to see if you succeeded.
-  //
-  // QUESTION: Compare the test with the code used above.  Why have we used
-  // lenses/traversals above, and not in the test? What is the difference
-  // between the code in the test and the code above that influences this? Write
-  // the answer below:
-  //
-  // ... ... ...
+// There is a test in LensesSpec to check whether  you did what expected.
+//
+// As you see doing this without lenses is very very annoying.  Updating
+// nested properties in complex objects is much easier in imperative
+// programming.
 
 
 
+// Exercise 5.  Lenses to the rescue.  Try to extend our hypothetical
+// university library with lenses, so that using the types is almost as
+// natural as in imperative languages.
+//
+// a) design a lense that accesses zipcode from Address objects:
 
-  // Exercise 7. Use filterIndex(p) to only capitalize city names of the
-  // students on the list whose name satisfies predicate (p).  filterIndex is a
-  // traversal, like 'each' above. Recall that ^|->> is used to compose (append)
-  // a traversal and ^|-> is used to append a lense.
+val _zipcode = Lens[Address, ZipCode] (_.zipcode) (n => a => a.copy(zipcode = n))
 
-  // val itu4 = ... ca. 3 lines TODO
+// b) design a lense that accesses the students collection from university:
 
-  // println (itu4) [cheap testing]
+val _students = Lens[University, Students] (_.students) (n => a => a.copy(students = n))
 
+// c) Use the following index lense (name)  from Monocle:
+// index(name) :Optional[Map[String,Address],Address]
 
-  // Exercise 8.  We are returning to construction of basic lenses.  Implement a
-  // (partial) lens that accesses ith element of a list (let's call it index).
-  // A partial lens, so a Optional in Monocle terminology, would be of type
-  // Optional[List[A],A].  The Optional takes two parameters for the
-  // constructor:
-  //
-  // get: List[A] => Option[A]
-  // set: A => List[A] => List[A]
-  //
-  // def setIth[A] (n: Integer) :Optional[List[A],A] = ... (1-2 lines)
+// This lens focuses our view on the entry in a map with a given index.
+// Optional in the Monocle terminology is a partial lense in the terminology
+// of Foster et al.
+//
+// Use lenses compositin to update itu the same way as above but in a clearer
+// way (use the infix binary operator ^|-? to compose a lense with an
+// optional, and use ^|-> to compose the optional with a lense).
 
+val itu2: University = (_students ^|-? index("Alex") ^|-> _zipcode).set("9100")(itu)
 
-
-  // In the above you will need to decide what to do with the setter if n is
-  // greater than the length of the list.  One option is to do nothing, just
-  // ignore the setting :).  Another alternative is to provide a default
-  // element, and extend the list approprietly. In such case we obtain a total
-  // lense. Try this too:
-
-  // def setIth1[A] (n: Integer, default: A) :Lens[List[A],A] = .. TODO ca. 12 lines
-
-
-
-  // Exercise 9. To test setIth (above) you will also need to implement new
-  // PutGet, GetPut and PutPut laws that work for Optionals. Add the tests to
-  // LensesSpec.scala.  Carefully consider the equality of results as used in
-  // Foster et al. (The \sqsubseteq ordering)
-  //
-  // Test setIth1 with existing laws that you have already used for your earlier
-  // lenses (setIth1 is a usual total lense).
-  //
-  // Proceed in LensesSpec.scala
+// There is a test in LensesSpec to test whether what you have built behaves
+// as expected.
+//
+// Now once you provide lenses for your types, navigating and modifying deep
+// structures becomes more readable and easier to write.  In fact, lense
+// libraries provide various mechanisms to generate them for the properties of
+// your case classess, so this access can come at almost no (coding) cost.
 
 
-  // Exercise 10.  setIth demonstrates that lenses emulate a form of
-  // "imperative" programming, by making a structure updatedable, even deeply.
-  // For a simple example, use sethIth below to increment the third element on a
-  // list list0
+// Exercise 6. We shall now turn upper case names of all countries in all the
+// addresses of all students in the itu object.
 
-  // val list0 = List[Int](1,2,3,4,5,6)
-  // val list1 = ... TODO
-  // println (list0)
-  // println (list1)
+// We shall use the 'modify' function of lenses. Morris describes modify
+// problem in Section 2, and shows the lens solution in Listing 9.  Monocle
+// has a modify method in Lens[A.B]:
+//
+//    modify : (B => B) => A => A
+//
+// It works almost like get and set at the same time (so you use modify if you
+// would otherwise like to get a value, and then make a modification to this
+// value).  Modify takes a function that makes the change (computes the new
+// data) and then the source(concrete) object.  It returns the new object. It
+// is potentially more efficient than using get and set separately.
+//
+// In this exercise we will use modify to perform a cross cutting modification
+// on a complex structure.
+//
+// We will need a lense that gives us all countries from the map of students.
+// This kind of lense is called a Traversable in Monocle.
+//
+// We use infix ^|->> to compose an optical (Lens, Traversable, Optional, etc)
+// with a traversable (as we use ^|-> to compose any of these with a Lens).
+//
+// The traversable "each" (which has a default instance for maps) will give us
+// a collection of all objects (values in a map).  So to solve the task we
+// need to compose:
+//
+// - a lense that extracts the students collection from a University
+// (_students)
+//
+// - a traversable that extracts all objects from a collection (each)
+//
+// - a lense that extract the country from an address object (_country, you
+// will need to write that one, as we did not create it yet).
 
+val _country = Lens[Address,String] (_.country) (n => a => a.copy(country = n))
+val itu3: University = (_students ^|->> each ^|-> _country).modify(_.toUpperCase)(itu)
+
+// LensesSpec.scala has a test to see if you succeeded.
+//
+// QUESTION: Compare the test with the code used above.  Why have we used
+// lenses/traversals above, and not in the test? What is the difference
+// between the code in the test and the code above that influences this? Write
+// the answer below:
+
+// We are using a traversable here, as we need to for every element modify it. In the test we need to use a forall as it checks, for each elements, that a certain predicate holdes. They are thus very different functions.
+
+// Exercise 7. Use filterIndex(p) to only capitalize city names of the
+// students on the list whose name satisfies predicate (p).  filterIndex is a
+// traversal, like 'each' above. Recall that ^|->> is used to compose (append)
+// a traversal and ^|-> is used to append a lense.
+
+val itu4 = (_students ^|->> filterIndex((p:String) => p.equals("Stefan")) ^|-> _country).modify(_.toUpperCase)(itu)
+println (itu4)// [cheap testing]
+
+
+// Exercise 8.  We are returning to construction of basic lenses.  Implement a
+// (partial) lens that accesses ith element of a list (let's call it index).
+// A partial lens, so a Optional in Monocle terminology, would be of type
+// Optional[List[A],A].  The Optional takes two parameters for the
+// constructor:
+
+// get: List[A] => Option[A]
+// set: A => List[A] => List[A]
+
+def setIth[A] (n: Integer) = {
+  def get[A] (n: Integer) (l: List[A]): Option[A] = l match {
+    case Nil => None
+    case x::xs if n == 0 => Some(x)
+    case _::xs => get(n-1)(xs)
+  }
+  def set[A] (n: Integer) (a: A) (l: List[A]): List[A] = l match {
+    case x::xs if n == 0 => a::xs
+    case x::xs => x::set(n-1)(a)(xs)
+    case Nil => Nil
+  }
+  Optional[List[A],A] (l => get(n)(l)) (a => l => set(n)(a)(l))
 }
 
+// In the above you will need to decide what to do with the setter if n is
+// greater than the length of the list.  One option is to do nothing, just
+// ignore the setting :).  Another alternative is to provide a default
+// element, and extend the list approprietly. In such case we obtain a total
+// lense. Try this too:
 
+def setIth1[A] (n: Integer, default: A): Lens[List[A],A] = {
+  def get (n: Integer) (l: List[A]): A = l match {
+    case Nil => default
+    case x::xs if n == 0 => x
+    case _::xs => get(n-1)(xs)
+  }
+  def set (n: Integer) (a: A) (l: List[A]): List[A] = l match {
+    case x::xs if n == 0 => a::xs
+    case x::xs => x::set(n-1)(a)(xs)
+    case Nil => List(default)
+  }
+  Lens[List[A],A] (l => get(n)(l)) (a => l => set(n)(a)(l))
+}
+
+// Exercise 9. To test setIth (above) you will also need to implement new
+// PutGet, GetPut and PutPut laws that work for Optionals. Add the tests to
+// LensesSpec.scala.  Carefully consider the equality of results as used in
+// Foster et al. (The \sqsubseteq ordering)
+
+// Test setIth1 with existing laws that you have already used for your earlier
+// lenses (setIth1 is a usual total lense).
+
+// Proceed in LensesSpec.scala
+
+
+// Exercise 10.  setIth demonstrates that lenses emulate a form of
+// "imperative" programming, by making a structure updatedable, even deeply.
+// For a simple example, use sethIth below to increment the third element on a
+// list list0
+
+// val list0 = List[Int](1,2,3,4,5,6)
+// val list1 = ... TODO
+// println (list0)
+// println (list1)
+
+}
