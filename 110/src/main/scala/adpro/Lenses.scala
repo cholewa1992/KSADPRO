@@ -103,7 +103,7 @@ object Lenses {
   )
   }
 
-  def id[A] = Lens[A,A] (a => a) (n => a => a)
+  def id[A] = Lens[A,A] (a => a) (n => a => n)
   def codiag[A]: Lens[A\/A,A] = choice(id[A])(id[A])
   def codiag2[A]: Lens[A\/A,A] = choice(Lens.id[A])(Lens.id[A])
 
