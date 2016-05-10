@@ -12,7 +12,7 @@ import scala.language.higherKinds
 // use scala.  This is Wadler's Term language implemented in Scala:
 
 trait Term
-case class Con (value :Int) extends Term
+case class Cons (value :Int) extends Term
 case class Div (left :Term, right :Term) extends Term
 
 
@@ -25,7 +25,7 @@ case class Div (left :Term, right :Term) extends Term
 object BasicEvaluator {
 
   def eval (term :Term) :Int = term match {
-    case Con(a) => a
+    case Cons(a) => a
     case Div(t,u) => eval (t) / eval (u)
   }
 
@@ -47,7 +47,7 @@ object ExceptionEvaluator {
     // TODO: complete in place of "..."
 
     def eval (term :Term) :M[Int] = term match {
-      case Con(a) => Return (a)
+      case Cons(a) => Return (a)
       case Div(t,u) => eval (t) match {
         case Raise(e) => Raise(e)
         case Return(a) => eval (u) match {
@@ -70,7 +70,7 @@ object StateEvaluator {
   type State = Int
 
   def eval (term :Term) :M[Int] = term match {
-    case Con (a) => M[Int] (x => (a,x))
+    case Cons (a) => M[Int] (x => (a,x))
     case Div (t,u) => M[Int] (x => {
       val (a,y) = (eval (t)).step(x)
       val (b,z) = (eval (u)).step(y)
@@ -90,7 +90,7 @@ object OutputEvaluator {
     "eval(" + a.toString + ") <= " + v.toString + "\n"
 
   def eval (term :Term): M[Int] = term match {
-    case Con (a) => M[Int] (line(Con(a))(a),a)
+    case Cons (a) => M[Int] (line(Cons(a))(a),a)
     case Div (t,u) => {
       val m1 = eval (t)
       val m2 = eval (u)
@@ -120,7 +120,7 @@ trait Monad[+A,M[_]] {
 
 trait MonadOps[M[_]] { def unit [A] (a: A): M[A] }
 
-// The above abstract traits will be used to constraint types of all our monadic
+// The above abstract traits will be used to Consstraint types of all our monadic
 // implementations, just to ensure better type safety and uniform interfaces.
 
 
@@ -145,7 +145,7 @@ object BasicEvaluatorWithMonads {
   object M extends MonadOps[M] { def unit[A] (a: A): M[A] = M[A] (a) }
 
   def eval (term: Term): M[Int] = term match {
-    case Con (a) => M.unit (a)
+    case Cons (a) => M.unit (a)
     case Div (t,u) => for {
       a <- eval (t)
       b <- eval (u)
@@ -184,7 +184,7 @@ object ExceptionEvaluatorWithMonads {
 
       // TODO: complete the evaluator
       def eval (term: Term): M[Int] = term match {
-        case Con (a) => M.unit (a)
+        case Cons (a) => M.unit (a)
         case Div (t,u) => for {
           a <- eval (t)
           b <- eval (u)
@@ -216,7 +216,7 @@ object StateEvaluatorWithMonads {
 
   // TODO: complete the implementation of the evalutor:
   def eval (term: Term): M[State] = term match {
-    case Con (a) => M.unit (a)
+    case Cons (a) => M.unit (a)
     case Div (t,u) => M[State] (x => (for {
       a <- eval (t)
       b <- eval (u)
@@ -257,7 +257,7 @@ object OutputEvaluatorWithMonads {
 
   // TODO: implement eval
   def eval (term :Term):M[Int] = term match {
-    case Con (a) => for (u <- out(line(term)(a))) yield a
+    case Cons (a) => for (u <- out(line(term)(a))) yield a
     //out(line(term)(a)).map(u => a) // Same as above
 
     case Div (t,u) => for {
